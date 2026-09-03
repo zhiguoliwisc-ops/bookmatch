@@ -1,10 +1,10 @@
 [project]
 name = "bookmatch"
 version = "0.1.0"
-description = "Add your description here"
+description = "An agentic AI system for donated book classification and reader matching."
 readme = "README.md"
 authors = [
-    { email = "zhiguo.li.wisc@gmail.com" }
+    { name = "Nick Li", email = "326444272+NickLi2027@users.noreply.github.com" }
 ]
 requires-python = ">=3.14"
 dependencies = [
