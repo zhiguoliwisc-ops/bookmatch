@@ -1,0 +1,25 @@
+[project]
+name = "bookmatch"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { email = "zhiguo.li.wisc@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "openai>=3.6.0",
+    "pydantic>=2.13.5",
+]
+
+[project.scripts]
+bookmatch = "bookmatch:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
