@@ -73,7 +73,12 @@ class OpenLibraryBookInformationService(BookInformationService):
         #print("Content-Type:", response.headers.get("content-type"))
         #print("Response preview:", response.text[:500])
 
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError as error:
+            raise BookInformationServiceError(
+                "Open Library returned an invalid response."
+            ) from error
 
         return EnrichedBook(
             title=data.get("title", book.title),
@@ -104,7 +109,12 @@ class OpenLibraryBookInformationService(BookInformationService):
 
         response.raise_for_status()
 
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError as error:
+            raise BookInformationServiceError(
+                "Open Library returned an invalid response."
+            ) from error
 
         docs = data.get("docs", [])
 

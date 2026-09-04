@@ -1,9 +1,13 @@
+import httpx
 import pytest
 
 from bookmatch.models.book import BookInput
-from bookmatch.services.exceptions import BookNotFoundError
+from bookmatch.services.exceptions import (
+    BookInformationServiceError,
+)
 from bookmatch.services.open_library_book_information_service import (
     OpenLibraryBookInformationService,
+    BookNotFoundError,
 )
 
 
@@ -157,4 +161,38 @@ def test_raise_error_when_book_is_not_found(monkeypatch):
     )
 
     with pytest.raises(BookNotFoundError):
+        service.enrich(book)
+
+def test_raises_error_when_response_contains_invalid_json(
+    monkeypatch,
+) -> None:
+    service = OpenLibraryBookInformationService()
+
+    def mock_get(*args, **kwargs):
+        request = httpx.Request(
+            "GET",
+            "https://openlibrary.org/isbn/9780064400558.json",
+        )
+
+        return httpx.Response(
+            200,
+            text="<html>Something went wrong</html>",
+            request=request,
+        )
+
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        mock_get,
+    )
+
+    book = BookInput(
+        title="Charlotte's Web",
+        isbn="9780064400558",
+    )
+
+    with pytest.raises(
+        BookInformationServiceError,
+        match="Open Library returned an invalid response",
+    ):
         service.enrich(book)
