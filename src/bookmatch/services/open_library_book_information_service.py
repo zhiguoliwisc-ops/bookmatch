@@ -52,12 +52,18 @@ class OpenLibraryBookInformationService(BookInformationService):
     ) -> EnrichedBook | None:
         url = f"{self.BASE_URL}/isbn/{book.isbn}.json"
 
-        response = self._get(url)
+        response = self._get(
+            url,            
+        )
 
         if response.status_code == 404:
             return None
 
         response.raise_for_status()
+
+        #print("Status:", response.status_code)
+        #print("Content-Type:", response.headers.get("content-type"))
+        #print("Response preview:", response.text[:500])
 
         data = response.json()
 
@@ -83,7 +89,10 @@ class OpenLibraryBookInformationService(BookInformationService):
 
         url = f"{self.BASE_URL}/search.json"
 
-        response = self._get(url)
+        response = self._get(
+            url,
+            params=params,
+            )
 
         response.raise_for_status()
 
