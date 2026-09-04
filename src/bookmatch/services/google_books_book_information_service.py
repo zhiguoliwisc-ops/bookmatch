@@ -5,8 +5,12 @@ from bookmatch.services.exceptions import (
     BookInformationServiceError,
 )
 
+from bookmatch.services.book_information_service import (
+    BookInformationService,
+)
 
-class GoogleBooksBookInformationService:
+
+class GoogleBooksBookInformationService(BookInformationService):
     BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 
     def enrich(

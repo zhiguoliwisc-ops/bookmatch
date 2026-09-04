@@ -1,12 +1,15 @@
 import httpx
 
 from bookmatch.models.book import BookInput, EnrichedBook
-from bookmatch.services.book_information_service import BookInformationService
+
 from bookmatch.services.exceptions import (
     BookInformationServiceError,
     BookNotFoundError,
 )
 
+from bookmatch.services.book_information_service import (
+    BookInformationService,
+)
 class OpenLibraryBookInformationService(BookInformationService):
     """Enrich book information using the Open Library API."""
 
