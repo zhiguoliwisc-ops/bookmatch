@@ -52,11 +52,11 @@ def main() -> None:
     )
 
     primary_book_information_service = (
-        OpenLibraryBookInformationService()
+        GoogleBooksBookInformationService()
     )
 
     fallback_book_information_service = (
-        GoogleBooksBookInformationService()
+        OpenLibraryBookInformationService()
     )
 
     book_information_service = FallbackBookInformationService(

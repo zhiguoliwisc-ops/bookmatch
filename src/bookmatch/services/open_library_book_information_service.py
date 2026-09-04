@@ -12,10 +12,19 @@ class OpenLibraryBookInformationService(BookInformationService):
 
     BASE_URL = "https://openlibrary.org"
 
-    def _get(self, url: str, **kwargs) -> httpx.Response:
+    HEADERS = {
+        "User-Agent": "BookMatch/0.1",
+        }
+
+    def _get(
+        self,
+        url: str,
+        **kwargs,
+    ) -> httpx.Response:
         try:
             return httpx.get(
                 url,
+                headers=self.HEADERS,
                 timeout=10.0,
                 follow_redirects=True,
                 **kwargs,
@@ -24,7 +33,6 @@ class OpenLibraryBookInformationService(BookInformationService):
             raise BookInformationServiceError(
                 "The request to Open Library timed out."
             ) from error
-
         except httpx.RequestError as error:
             raise BookInformationServiceError(
                 "Could not connect to Open Library."
