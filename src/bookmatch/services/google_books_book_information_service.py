@@ -1,6 +1,8 @@
 import httpx
+import time
 
 from bookmatch.models.book import BookInput, EnrichedBook
+
 from bookmatch.services.exceptions import (
     BookInformationServiceError,
 )
@@ -12,6 +14,11 @@ from bookmatch.services.book_information_service import (
 
 class GoogleBooksBookInformationService(BookInformationService):
     BASE_URL = "https://www.googleapis.com/books/v1/volumes"
+
+    REQUEST_INTERVAL = 1.0
+
+    def __init__(self) -> None:
+        self._next_allowed_request_time = 0.0
 
     def enrich(
         self,
@@ -37,31 +44,70 @@ class GoogleBooksBookInformationService(BookInformationService):
         url: str,
         **kwargs,
     ) -> httpx.Response:
-        try:
-            response = httpx.get(
-                url,
-                timeout=10.0,
-                **kwargs,
+        max_attempts = 3
+
+        for attempt in range(max_attempts):
+            try:
+                self._throttle()
+
+                response = httpx.get(
+                    url,
+                    timeout=10.0,
+                    **kwargs,
+                )
+
+                response.raise_for_status()
+
+                return response
+
+            except httpx.TimeoutException as error:
+                raise BookInformationServiceError(
+                    "The request to Google Books timed out."
+                ) from error
+
+            except httpx.HTTPStatusError as error:
+                if (
+                    error.response.status_code == 429
+                    and attempt < max_attempts - 1
+                ):
+                    retry_after = error.response.headers.get(
+                        "Retry-After"
+                    )
+
+                    if retry_after is not None:
+                        delay = float(retry_after)
+                    else:
+                        delay = 2**attempt
+
+                    print(
+                        f"Google Books rate limit reached. "
+                        f"Retrying in {delay} seconds..."
+                    )
+
+                    time.sleep(delay)
+                    continue
+
+                raise BookInformationServiceError(
+                    f"Google Books returned HTTP "
+                    f"{error.response.status_code}."
+                ) from error
+
+            except httpx.RequestError as error:
+                raise BookInformationServiceError(
+                    "Could not connect to Google Books."
+                ) from error
+
+    def _throttle(self) -> None:
+        now = time.monotonic()
+
+        if now < self._next_allowed_request_time:
+            time.sleep(
+                self._next_allowed_request_time - now
             )
-            response.raise_for_status()
 
-            return response
-
-        except httpx.TimeoutException as error:
-            raise BookInformationServiceError(
-                "The request to Google Books timed out."
-            ) from error
-
-        except httpx.HTTPStatusError as error:
-            raise BookInformationServiceError(
-                f"Google Books returned HTTP "
-                f"{error.response.status_code}."
-            ) from error
-
-        except httpx.RequestError as error:
-            raise BookInformationServiceError(
-                "Could not connect to Google Books."
-            ) from error
+        self._next_allowed_request_time = (
+            time.monotonic() + self.REQUEST_INTERVAL
+        )
 
     def _lookup_by_isbn(
         self,
