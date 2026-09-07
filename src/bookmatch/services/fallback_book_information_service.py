@@ -22,5 +22,6 @@ class FallbackBookInformationService(BookInformationService):
     ) -> EnrichedBook:
         try:
             return self.primary.enrich(book)
-        except BookInformationServiceError:
+        except BookInformationServiceError as error:
+            print(f"Primary book information service failed: {error}")
             return self.fallback.enrich(book)
