@@ -78,8 +78,6 @@ def main() -> None:
 
     result = workflow.run(book)
 
-    result = workflow.run(book)
-
     print()
     print(f"Title: {result.book.title}")
     print(f"Author: {result.book.author}")
@@ -98,4 +96,3 @@ def main() -> None:
     )
     print(f"Genre: {result.classification.genre}")
 
-    
