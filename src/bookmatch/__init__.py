@@ -36,24 +36,24 @@ def main() -> None:
     load_dotenv()
 
     api_key = os.getenv("OPENAI_API_KEY")
-
     if not api_key:
-        raise ValueError(
-            "OPENAI_API_KEY is not configured."
-        )
+        raise ValueError("OPENAI_API_KEY is not configured.")
+
+    google_books_api_key = os.getenv("GOOGLE_BOOKS_API_KEY")
+    if not google_books_api_key:
+        raise ValueError("GOOGLE_BOOKS_API_KEY is not configured.")
 
     title = input("Enter book title: ").strip()
     author = input("Enter author (optional): ").strip() or None
     isbn = input("Enter ISBN (optional): ").strip() or None
-
     book = BookInput(
         title=title,
         author=author,
         isbn=isbn,
     )
 
-    primary_book_information_service = (
-        GoogleBooksBookInformationService()
+    primary_book_information_service = GoogleBooksBookInformationService(
+        api_key=google_books_api_key,
     )
 
     fallback_book_information_service = (

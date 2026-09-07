@@ -17,7 +17,11 @@ class GoogleBooksBookInformationService(BookInformationService):
 
     REQUEST_INTERVAL = 1.0
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        api_key: str,
+    ) -> None:
+        self.api_key = api_key
         self._next_allowed_request_time = 0.0
 
     def enrich(
@@ -115,6 +119,7 @@ class GoogleBooksBookInformationService(BookInformationService):
     ) -> EnrichedBook | None:
         params = {
             "q": f"isbn:{book.isbn}",
+            "key": self.api_key,
         }
 
         response = self._get(
@@ -161,6 +166,7 @@ class GoogleBooksBookInformationService(BookInformationService):
 
         params = {
             "q": "+".join(query_parts),
+            "key": self.api_key,
         }
 
         response = self._get(
