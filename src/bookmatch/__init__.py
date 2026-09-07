@@ -1,31 +1,32 @@
-from bookmatch.models.book import BookInput
-from bookmatch.services.open_library_book_information_service import (
-    OpenLibraryBookInformationService,
-)
 import os
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
 from bookmatch.models.book import BookInput
-from bookmatch.services.open_library_book_information_service import (
-    OpenLibraryBookInformationService,
-)
-from bookmatch.services.openai_classification_service import (
-    OpenAIClassificationService,
-)
-from bookmatch.workflow.book_classification_workflow import (
-    BookClassificationWorkflow,
-)
-from bookmatch.workflow.book_classification_workflow import (
-    BookClassificationWorkflow,
+
+from bookmatch.services.cached_book_information_service import (
+    CachedBookInformationService,
 )
 
 from bookmatch.services.fallback_book_information_service import (
     FallbackBookInformationService,
 )
+
 from bookmatch.services.google_books_book_information_service import (
     GoogleBooksBookInformationService,
+)
+
+from bookmatch.services.open_library_book_information_service import (
+    OpenLibraryBookInformationService,
+)
+
+from bookmatch.services.openai_classification_service import (
+    OpenAIClassificationService,
+)
+
+from bookmatch.workflow.book_classification_workflow import (
+    BookClassificationWorkflow,
 )
 
 
@@ -59,9 +60,13 @@ def main() -> None:
         OpenLibraryBookInformationService()
     )
 
-    book_information_service = FallbackBookInformationService(
+    fallback_book_information_service = FallbackBookInformationService(
         primary=primary_book_information_service,
         fallback=fallback_book_information_service,
+    )
+
+    book_information_service = CachedBookInformationService(
+        underlying_service=fallback_book_information_service,
     )
 
     workflow = BookClassificationWorkflow(
@@ -92,3 +97,5 @@ def main() -> None:
         f"{result.classification.reading_difficulty.value} / 5"
     )
     print(f"Genre: {result.classification.genre}")
+
+    
