@@ -1,5 +1,4 @@
 from enum import Enum
-
 from pydantic import BaseModel, Field
 
 
@@ -24,7 +23,10 @@ class BookClassification(BaseModel):
     """Classification result for a book."""
 
     recommended_age_group: AgeGroup
+    minimum_age: int
+    maximum_age: int
     reading_difficulty: ReadingDifficulty
+    genre: str
 
     confidence: float = Field(
         ...,

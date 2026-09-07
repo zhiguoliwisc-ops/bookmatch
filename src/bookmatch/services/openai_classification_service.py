@@ -32,11 +32,12 @@ class OpenAIClassificationService(ClassificationService):
                 {
                     "role": "user",
                     "content": (
-                        f"Title: {book.title}\n"
-                        f"Author: {book.author}\n"
-                        f"Publication date: {book.publication_date}\n"
-                        f"ISBN: {book.isbn}\n"
-                        f"Description: {book.description}"
+                        "You are a book classification assistant. "
+                        "Classify the book based on the information provided. "
+                        "Determine the most appropriate reader age group, "
+                        "recommended age range, reading difficulty, and primary genre. "
+                        "The recommended age range is an estimate based on the "
+                        "available book information, not a precise scientific measurement."
                     ),
                 },
             ],

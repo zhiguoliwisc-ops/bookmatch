@@ -22,7 +22,10 @@ def test_classify_picture_book():
     result = service.classify(book)
 
     assert result.recommended_age_group == AgeGroup.PRESCHOOL
+    assert result.minimum_age == 3
+    assert result.maximum_age == 5
     assert result.reading_difficulty == ReadingDifficulty.VERY_EASY
+    assert result.genre == "Children's Fiction"
     assert result.confidence == 0.9
 
 
@@ -37,7 +40,10 @@ def test_classify_early_reader():
     result = service.classify(book)
 
     assert result.recommended_age_group == AgeGroup.EARLY_ELEMENTARY
+    assert result.minimum_age == 5
+    assert result.maximum_age == 7
     assert result.reading_difficulty == ReadingDifficulty.EASY
+    assert result.genre == "Children's Fiction"
 
 
 def test_classify_young_adult_book():
@@ -51,7 +57,10 @@ def test_classify_young_adult_book():
     result = service.classify(book)
 
     assert result.recommended_age_group == AgeGroup.HIGH_SCHOOL
+    assert result.minimum_age == 14
+    assert result.maximum_age == 18
     assert result.reading_difficulty == ReadingDifficulty.CHALLENGING
+    assert result.genre == "Young Adult Fiction"
 
 
 def test_raise_error_when_description_is_missing():

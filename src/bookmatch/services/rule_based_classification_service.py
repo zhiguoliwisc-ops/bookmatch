@@ -22,21 +22,30 @@ class RuleBasedClassificationService(ClassificationService):
         if "picture book" in description:
             return BookClassification(
                 recommended_age_group=AgeGroup.PRESCHOOL,
+                minimum_age=3,
+                maximum_age=5,
                 reading_difficulty=ReadingDifficulty.VERY_EASY,
+                genre="Children's Fiction",
                 confidence=0.9,
             )
 
         if "early reader" in description:
             return BookClassification(
                 recommended_age_group=AgeGroup.EARLY_ELEMENTARY,
+                minimum_age=5,
+                maximum_age=7,
                 reading_difficulty=ReadingDifficulty.EASY,
+                genre="Children's Fiction",
                 confidence=0.9,
             )
 
         if "young adult" in description:
             return BookClassification(
                 recommended_age_group=AgeGroup.HIGH_SCHOOL,
+                minimum_age=14,
+                maximum_age=18,
                 reading_difficulty=ReadingDifficulty.CHALLENGING,
+                genre="Young Adult Fiction",
                 confidence=0.9,
             )
 

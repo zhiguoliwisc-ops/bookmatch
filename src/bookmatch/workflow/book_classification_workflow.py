@@ -1,5 +1,5 @@
 from bookmatch.models.book import BookInput
-from bookmatch.models.classification import BookClassification
+from bookmatch.models.result import BookMatchResult
 from bookmatch.services.book_information_service import (
     BookInformationService,
 )
@@ -19,9 +19,16 @@ class BookClassificationWorkflow:
         self.book_information_service = book_information_service
         self.classification_service = classification_service
 
-    def run(self, book: BookInput) -> BookClassification:
+    def run(self, book: BookInput) -> BookMatchResult:
         """Enrich a book and classify it."""
 
         enriched_book = self.book_information_service.enrich(book)
 
-        return self.classification_service.classify(enriched_book)
+        classification = self.classification_service.classify(
+            enriched_book
+        )
+
+        return BookMatchResult(
+            book=enriched_book,
+            classification=classification,
+        )

@@ -31,7 +31,10 @@ class FakeClassificationService(ClassificationService):
     def classify(self, book: BookInput) -> BookClassification:
         return BookClassification(
             recommended_age_group=AgeGroup.PRESCHOOL,
+            minimum_age=3,
+            maximum_age=5,
             reading_difficulty=ReadingDifficulty.VERY_EASY,
+            genre="Children's Fiction",
             confidence=0.95,
         )
 
@@ -52,6 +55,12 @@ def test_book_classification_workflow():
 
     result = workflow.run(book)
 
-    assert result.recommended_age_group == AgeGroup.PRESCHOOL
-    assert result.reading_difficulty == ReadingDifficulty.VERY_EASY
-    assert result.confidence == 0.95
+    assert result.book.title == "Example Book"
+    assert result.book.author == "Example Author"
+
+    assert result.classification.recommended_age_group == AgeGroup.PRESCHOOL
+    assert result.classification.minimum_age == 3
+    assert result.classification.maximum_age == 5
+    assert result.classification.reading_difficulty == ReadingDifficulty.VERY_EASY
+    assert result.classification.genre == "Children's Fiction"
+    assert result.classification.confidence == 0.95

@@ -2,8 +2,12 @@
 
 BookMatch is a Python application that retrieves and enriches book information from external APIs and uses an LLM to classify books by:
 
-- Recommended age group
-- Reading difficulty
+- Title
+- Author
+- Age Group
+- Age Range
+- Difficulty Level
+- Genre
 
 ## Features
 

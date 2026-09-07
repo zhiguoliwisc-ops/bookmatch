@@ -73,6 +73,22 @@ def main() -> None:
 
     result = workflow.run(book)
 
+    result = workflow.run(book)
+
     print()
-    print(f"Recommended age group: {result.recommended_age_group.value}")
-    print(f"Reading difficulty: {result.reading_difficulty.value}")
+    print(f"Title: {result.book.title}")
+    print(f"Author: {result.book.author}")
+    print(
+        f"Recommended age group: "
+        f"{result.classification.recommended_age_group.value}"
+    )
+    print(
+        f"Recommended age range: "
+        f"{result.classification.minimum_age}–"
+        f"{result.classification.maximum_age} years old"
+    )
+    print(
+        f"Reading difficulty: "
+        f"{result.classification.reading_difficulty.value} / 5"
+    )
+    print(f"Genre: {result.classification.genre}")
