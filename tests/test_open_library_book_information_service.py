@@ -196,3 +196,39 @@ def test_raises_error_when_response_contains_invalid_json(
         match="Open Library returned an invalid response",
     ):
         service.enrich(book)
+
+def test_uses_bookmatch_user_agent(monkeypatch) -> None:
+    captured_kwargs = {}
+
+    def mock_get(url, **kwargs):
+        captured_kwargs.update(kwargs)
+
+        class MockResponse:
+            status_code = 200
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {
+                    "title": "Charlotte's Web",
+                    "description": {
+                        "value": "A story about a pig and a spider."
+                    },
+                }
+
+        return MockResponse()
+
+    monkeypatch.setattr("httpx.get", mock_get)
+
+    service = OpenLibraryBookInformationService()
+
+    book = BookInput(
+        title="Charlotte's Web",
+        isbn="9780064400558",
+    )
+
+    service.enrich(book)
+
+    assert captured_kwargs["headers"] == service.HEADERS
+    assert captured_kwargs["headers"]["User-Agent"] == "BookMatch/0.1"
