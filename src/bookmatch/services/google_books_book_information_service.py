@@ -1,28 +1,26 @@
-import httpx
-import time
-
 from bookmatch.models.book import BookInput, EnrichedBook
+
+from bookmatch.services.book_information_service import (
+    BookInformationService,
+)
+from bookmatch.services.google_books_client import (
+    GoogleBooksClient,
+)
 
 from bookmatch.services.exceptions import (
     BookInformationServiceError,
 )
 
-from bookmatch.services.book_information_service import (
-    BookInformationService,
-)
-
-
 class GoogleBooksBookInformationService(BookInformationService):
-    BASE_URL = "https://www.googleapis.com/books/v1/volumes"
-
-    REQUEST_INTERVAL = 1.0
+    """Retrieve book information from Google Books."""
 
     def __init__(
         self,
         api_key: str,
     ) -> None:
-        self.api_key = api_key
-        self._next_allowed_request_time = 0.0
+        self.client = GoogleBooksClient(
+            api_key=api_key,
+        )
 
     def enrich(
         self,
@@ -43,113 +41,20 @@ class GoogleBooksBookInformationService(BookInformationService):
             f"Could not find book: {book.title}"
         )
 
-    def _get(
-        self,
-        url: str,
-        **kwargs,
-    ) -> httpx.Response:
-        max_attempts = 3
-
-        for attempt in range(max_attempts):
-            try:
-                self._throttle()
-
-                response = httpx.get(
-                    url,
-                    timeout=10.0,
-                    **kwargs,
-                )
-
-                response.raise_for_status()
-
-                return response
-
-            except httpx.TimeoutException as error:
-                raise BookInformationServiceError(
-                    "The request to Google Books timed out."
-                ) from error
-
-            except httpx.HTTPStatusError as error:
-                if (
-                    error.response.status_code == 429
-                    and attempt < max_attempts - 1
-                ):
-                    retry_after = error.response.headers.get(
-                        "Retry-After"
-                    )
-
-                    if retry_after is not None:
-                        delay = float(retry_after)
-                    else:
-                        delay = 2**attempt
-
-                    print(
-                        f"Google Books rate limit reached. "
-                        f"Retrying in {delay} seconds..."
-                    )
-
-                    time.sleep(delay)
-                    continue
-
-                raise BookInformationServiceError(
-                    f"Google Books returned HTTP "
-                    f"{error.response.status_code}."
-                ) from error
-
-            except httpx.RequestError as error:
-                raise BookInformationServiceError(
-                    "Could not connect to Google Books."
-                ) from error
-
-    def _throttle(self) -> None:
-        now = time.monotonic()
-
-        if now < self._next_allowed_request_time:
-            time.sleep(
-                self._next_allowed_request_time - now
-            )
-
-        self._next_allowed_request_time = (
-            time.monotonic() + self.REQUEST_INTERVAL
-        )
-
     def _lookup_by_isbn(
         self,
         book: BookInput,
     ) -> EnrichedBook | None:
         params = {
             "q": f"isbn:{book.isbn}",
-            "key": self.api_key,
         }
 
-        response = self._get(
-            self.BASE_URL,
-            params=params,
-        )
+        data = self.client.get(params)
 
         return self._create_enriched_book(
-            response.json(),
+            data,
             book,
         )
-
-    def _extract_isbn(
-        self,
-        volume_info: dict,
-        book: BookInput,
-    ) -> str | None:
-        identifiers = volume_info.get(
-            "industryIdentifiers",
-            [],
-        )
-
-        for identifier in identifiers:
-            if identifier.get("type") in {
-                "ISBN_13",
-                "ISBN_10",
-            }:
-                return identifier.get("identifier")
-
-        return book.isbn
 
     def _lookup_by_title_and_author(
         self,
@@ -166,16 +71,12 @@ class GoogleBooksBookInformationService(BookInformationService):
 
         params = {
             "q": "+".join(query_parts),
-            "key": self.api_key,
         }
 
-        response = self._get(
-            self.BASE_URL,
-            params=params,
-        )
+        data = self.client.get(params)
 
         return self._create_enriched_book(
-            response.json(),
+            data,
             book,
         )
 
@@ -218,3 +119,22 @@ class GoogleBooksBookInformationService(BookInformationService):
             ),
             source="Google Books",
         )
+
+    def _extract_isbn(
+        self,
+        volume_info: dict,
+        book: BookInput,
+    ) -> str | None:
+        identifiers = volume_info.get(
+            "industryIdentifiers",
+            [],
+        )
+
+        for identifier in identifiers:
+            if identifier.get("type") in {
+                "ISBN_13",
+                "ISBN_10",
+            }:
+                return identifier.get("identifier")
+
+        return book.isbn

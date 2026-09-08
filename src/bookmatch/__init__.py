@@ -5,20 +5,24 @@ from openai import OpenAI
 
 from bookmatch.models.book import BookInput
 
-from bookmatch.services.cached_book_information_service import (
-    CachedBookInformationService,
+from bookmatch.services.book_identification_service import (
+    BookIdentificationService,
 )
 
-from bookmatch.services.fallback_book_information_service import (
-    FallbackBookInformationService,
+from bookmatch.services.candidate_book_resolver import (
+    CandidateBookResolver,
 )
 
-from bookmatch.services.google_books_book_information_service import (
-    GoogleBooksBookInformationService,
+from bookmatch.services.composite_book_candidate_service import (
+    CompositeBookCandidateService,
 )
 
-from bookmatch.services.open_library_book_information_service import (
-    OpenLibraryBookInformationService,
+from bookmatch.services.google_books_book_candidate_service import (
+    GoogleBooksBookCandidateService,
+)
+
+from bookmatch.services.open_library_book_candidate_service import (
+    OpenLibraryBookCandidateService,
 )
 
 from bookmatch.services.openai_classification_service import (
@@ -46,31 +50,37 @@ def main() -> None:
     title = input("Enter book title: ").strip()
     author = input("Enter author (optional): ").strip() or None
     isbn = input("Enter ISBN (optional): ").strip() or None
+
     book = BookInput(
         title=title,
         author=author,
         isbn=isbn,
     )
 
-    primary_book_information_service = GoogleBooksBookInformationService(
-        api_key=google_books_api_key,
+    google_books_candidate_service = (
+        GoogleBooksBookCandidateService(
+            api_key=google_books_api_key,
+        )
     )
 
-    fallback_book_information_service = (
-        OpenLibraryBookInformationService()
+    open_library_candidate_service = (
+        OpenLibraryBookCandidateService()
     )
 
-    fallback_book_information_service = FallbackBookInformationService(
-        primary=primary_book_information_service,
-        fallback=fallback_book_information_service,
+    candidate_service = CompositeBookCandidateService(
+        services=[
+            google_books_candidate_service,
+            open_library_candidate_service,
+        ],
     )
 
-    book_information_service = CachedBookInformationService(
-        underlying_service=fallback_book_information_service,
+    book_resolver = CandidateBookResolver(
+        candidate_service=candidate_service,
+        identification_service=BookIdentificationService(),
     )
 
     workflow = BookClassificationWorkflow(
-        book_information_service=book_information_service,
+        book_resolver=book_resolver,
         classification_service=OpenAIClassificationService(
             client=OpenAI(api_key=api_key),
         ),
@@ -95,4 +105,3 @@ def main() -> None:
         f"{result.classification.reading_difficulty.value} / 5"
     )
     print(f"Genre: {result.classification.genre}")
-
