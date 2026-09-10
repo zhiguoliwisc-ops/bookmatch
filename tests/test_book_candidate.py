@@ -1,6 +1,6 @@
 from bookmatch.models.book import EnrichedBook
 from bookmatch.models.book_candidate import BookCandidate
-
+from bookmatch.models.candidate_evidence import CandidateEvidence
 
 def create_book() -> EnrichedBook:
     return EnrichedBook(
@@ -34,3 +34,29 @@ def test_book_candidate_can_use_open_library() -> None:
     )
 
     assert candidate.provider == "Open Library"
+
+def test_book_candidate_can_store_evidence() -> None:
+    book = EnrichedBook(
+        title="Pemmican Wars",
+        author="Katherena Vermette",
+        publication_date=None,
+        isbn="9781553797357",
+        description=None,
+        source="Google Books",
+    )
+
+    evidence = CandidateEvidence(
+        series_title="A Girl Called Echo",
+        volume_number=1,
+        author="Katherena Vermette",
+    )
+
+    candidate = BookCandidate(
+        book=book,
+        provider="Google Books",
+        evidence=evidence,
+    )
+
+    assert candidate.evidence == evidence
+    assert candidate.evidence.series_title == "A Girl Called Echo"
+    assert candidate.evidence.volume_number == 1

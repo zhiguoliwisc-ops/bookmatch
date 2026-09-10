@@ -19,6 +19,7 @@ from bookmatch.services.candidate_book_resolver import (
 )
 from bookmatch.services.exceptions import (
     AmbiguousBookError,
+    BookInformationServiceError,
     BookNotFoundError,
 )
 
@@ -227,3 +228,35 @@ def test_ambiguous_match_raises_ambiguous_book_error() -> None:
         book,
         candidates,
     )
+
+
+def test_provider_failure_propagates_book_information_service_error() -> None:
+    candidate_service = Mock(spec=BookCandidateService)
+    identification_service = Mock(
+        spec=BookIdentificationService
+    )
+
+    candidate_service.find_candidates.side_effect = (
+        BookInformationServiceError(
+            "All book information providers failed."
+        )
+    )
+
+    resolver = CandidateBookResolver(
+        candidate_service=candidate_service,
+        identification_service=identification_service,
+    )
+
+    book = BookInput(
+        title="Dog Man",
+        author="Dav Pilkey",
+    )
+
+    with pytest.raises(BookInformationServiceError):
+        resolver.resolve(book)
+
+    candidate_service.find_candidates.assert_called_once_with(
+        book
+    )
+
+    identification_service.identify.assert_not_called()

@@ -12,17 +12,20 @@ from bookmatch.batch.grade_matching import (
     grade_range_to_age_range,
 )
 from bookmatch.models.book import BookInput
-from bookmatch.services.cached_book_information_service import (
-    CachedBookInformationService,
+from bookmatch.services.book_identification_service import (
+    BookIdentificationService,
 )
-from bookmatch.services.fallback_book_information_service import (
-    FallbackBookInformationService,
+from bookmatch.services.candidate_book_resolver import (
+    CandidateBookResolver,
 )
-from bookmatch.services.google_books_book_information_service import (
-    GoogleBooksBookInformationService,
+from bookmatch.services.composite_book_candidate_service import (
+    CompositeBookCandidateService,
 )
-from bookmatch.services.open_library_book_information_service import (
-    OpenLibraryBookInformationService,
+from bookmatch.services.google_books_book_candidate_service import (
+    GoogleBooksBookCandidateService,
+)
+from bookmatch.services.open_library_book_candidate_service import (
+    OpenLibraryBookCandidateService,
 )
 from bookmatch.services.openai_classification_service import (
     OpenAIClassificationService,
@@ -57,6 +60,7 @@ TEST_BOOKS = [
 ]
 
 
+
 def normalize_title(title: str) -> str:
     """Normalize whitespace and case for title matching."""
 
@@ -64,7 +68,7 @@ def normalize_title(title: str) -> str:
 
 
 def create_workflow() -> BookClassificationWorkflow:
-    """Create the existing v1.5 classification workflow."""
+    """Create the BookMatch classification workflow."""
 
     load_dotenv()
 
@@ -78,19 +82,26 @@ def create_workflow() -> BookClassificationWorkflow:
             "GOOGLE_BOOKS_API_KEY is not configured."
         )
 
-    google_books_service = GoogleBooksBookInformationService(
-        api_key=google_books_api_key,
+    google_books_candidate_service = (
+        GoogleBooksBookCandidateService(
+            api_key=google_books_api_key,
+        )
     )
 
-    open_library_service = OpenLibraryBookInformationService()
-
-    fallback_service = FallbackBookInformationService(
-        primary=google_books_service,
-        fallback=open_library_service,
+    open_library_candidate_service = (
+        OpenLibraryBookCandidateService()
     )
 
-    cached_service = CachedBookInformationService(
-        underlying_service=fallback_service,
+    candidate_service = CompositeBookCandidateService(
+        services=[
+            google_books_candidate_service,
+            open_library_candidate_service,
+        ],
+    )
+
+    book_resolver = CandidateBookResolver(
+        candidate_service=candidate_service,
+        identification_service=BookIdentificationService(),
     )
 
     classification_service = OpenAIClassificationService(
@@ -98,7 +109,7 @@ def create_workflow() -> BookClassificationWorkflow:
     )
 
     return BookClassificationWorkflow(
-        book_information_service=cached_service,
+        book_resolver=book_resolver,
         classification_service=classification_service,
     )
 
@@ -124,6 +135,7 @@ def load_school_books() -> list[dict]:
         record = dict(zip(headers, row))
 
         title = record.get("Book Title")
+
 
         if not title:
             continue
@@ -159,7 +171,7 @@ def find_school_book(
 
 
 def classify_books() -> list[dict]:
-    """Classify the selected test books using v1.5."""
+    """Classify the selected test books."""
 
     school_books = load_school_books()
     workflow = create_workflow()
@@ -220,6 +232,12 @@ def classify_books() -> list[dict]:
                 grade_range_to_age_range(
                     suggested_grades
                 )
+            )
+
+            print(
+                "DEBUG BookInput:",
+                repr(book.title),
+                repr(book.author),
             )
 
             results.append(

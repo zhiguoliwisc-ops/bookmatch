@@ -48,7 +48,7 @@ def main() -> None:
         raise ValueError("GOOGLE_BOOKS_API_KEY is not configured.")
 
     title = input("Enter book title: ").strip()
-    author = input("Enter author (optional): ").strip() or None
+    author = input("Enter author: ").strip() or None
     isbn = input("Enter ISBN (optional): ").strip() or None
 
     book = BookInput(
