@@ -33,6 +33,7 @@ class BookClassificationWorkflow:
         )
 
         review = self.reviewer_agent.review(
+            book,
             enriched_book,
             classification,
         )
@@ -51,12 +52,14 @@ class BookClassificationWorkflow:
         return self.classifier_agent.classify(book)
 
     def review_book(
-        self,
-        book: EnrichedBook,
-        classification: BookClassification,
-    ) -> ClassificationReview:
+            self,
+            book: BookInput,
+            enriched_book: EnrichedBook,
+            classification: BookClassification,
+        ) -> ClassificationReview:
         """Review a classification for an already resolved book."""
         return self.reviewer_agent.review(
             book,
+            enriched_book,
             classification,
         )

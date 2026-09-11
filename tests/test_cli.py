@@ -151,13 +151,19 @@ def test_run_cli_handles_ambiguous_book() -> None:
         run_cli(workflow)
 
     workflow.run.assert_called_once()
-    workflow.classify_book.assert_called_once_with(
-        candidates[0]
-    )
-    workflow.review_book.assert_called_once_with(
-        candidates[0],
-        classification,
-    )
+
+    workflow.review_book.assert_called_once()
+
+    review_args = workflow.review_book.call_args.args
+
+    assert review_args[0].title == "Dog Man"
+    assert review_args[0].author is None
+    assert review_args[0].isbn is None
+
+    assert review_args[1] == candidates[0]
+    assert review_args[2] == classification
+
+
 def test_run_cli_displays_review(
     monkeypatch,
     capsys,

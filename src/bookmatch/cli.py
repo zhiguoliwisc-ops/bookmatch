@@ -64,6 +64,7 @@ def run_cli(
         )
 
         review = workflow.review_book(
+            book,
             selected_book,
             classification,
         )

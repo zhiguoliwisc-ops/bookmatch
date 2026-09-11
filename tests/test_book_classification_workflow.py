@@ -31,11 +31,13 @@ from bookmatch.services.book_reviewer_agent import (
 )
 
 class FakeBookReviewerAgent(BookReviewerAgent):
+
     def review(
-        self,
-        book: EnrichedBook,
-        classification: BookClassification,
-    ) -> ClassificationReview:
+            self,
+            original_input: BookInput,
+            book: EnrichedBook,
+            classification: BookClassification,
+        ) -> ClassificationReview:
         return ClassificationReview(
             decision=ReviewDecision.APPROVED,
             confidence=0.95,

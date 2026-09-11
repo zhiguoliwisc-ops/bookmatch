@@ -1,7 +1,7 @@
-import pytest
 from unittest.mock import Mock
+import pytest
 
-from bookmatch.models.book import EnrichedBook
+from bookmatch.models.book import BookInput, EnrichedBook
 from bookmatch.models.classification import (
     AgeGroup,
     BookClassification,
@@ -17,6 +17,10 @@ from bookmatch.services.openai_reviewer_agent import (
 
 
 def test_openai_reviewer_agent_returns_review() -> None:
+    original_input = BookInput(
+        title="Dog Man",
+    )
+
     book = EnrichedBook(
         title="Dog Man",
         author="Dav Pilkey",
@@ -56,6 +60,7 @@ def test_openai_reviewer_agent_returns_review() -> None:
     agent = OpenAIReviewerAgent(client=mock_client)
 
     result = agent.review(
+        original_input,
         book,
         classification,
     )
@@ -64,7 +69,12 @@ def test_openai_reviewer_agent_returns_review() -> None:
     assert result.decision == ReviewDecision.APPROVED
     assert result.confidence == 0.95
 
+
 def test_openai_reviewer_agent_raises_when_parsed_review_is_none() -> None:
+    original_input = BookInput(
+        title="Dog Man",
+    )
+
     mock_response = Mock()
     mock_response.choices = [
         Mock(
@@ -98,9 +108,18 @@ def test_openai_reviewer_agent_raises_when_parsed_review_is_none() -> None:
     )
 
     with pytest.raises(ValueError, match="valid classification review"):
-        agent.review(book, classification)
+        agent.review(
+            original_input,
+            book,
+            classification,
+        )
+
 
 def test_openai_reviewer_agent_sends_book_and_classification_to_openai() -> None:
+    original_input = BookInput(
+        title="Dog Man",
+    )
+
     mock_response = Mock()
     mock_response.choices = [
         Mock(
@@ -137,7 +156,11 @@ def test_openai_reviewer_agent_sends_book_and_classification_to_openai() -> None
         confidence=0.9,
     )
 
-    agent.review(book, classification)
+    agent.review(
+        original_input,
+        book,
+        classification,
+    )
 
     mock_client.chat.completions.parse.assert_called_once()
 
@@ -151,10 +174,18 @@ def test_openai_reviewer_agent_sends_book_and_classification_to_openai() -> None
     assert "6–10" in user_message
     assert "Graphic Novel" in user_message
 
+    assert "Original user input:" in user_message
+    assert "Selected book:" in user_message
+
     assert call_kwargs["model"] == "gpt-4o-mini"
     assert call_kwargs["response_format"] is ClassificationReview
 
+
 def test_openai_reviewer_agent_returns_needs_revision() -> None:
+    original_input = BookInput(
+        title="Charlotte's Web",
+    )
+
     parsed_review = ClassificationReview(
         decision=ReviewDecision.NEEDS_REVISION,
         confidence=0.80,
@@ -193,7 +224,11 @@ def test_openai_reviewer_agent_returns_needs_revision() -> None:
         confidence=0.9,
     )
 
-    result = agent.review(book, classification)
+    result = agent.review(
+        original_input,
+        book,
+        classification,
+    )
 
     assert isinstance(result, ClassificationReview)
     assert result.decision == ReviewDecision.NEEDS_REVISION

@@ -11,11 +11,12 @@ from bookmatch.models.classification_review import (
 from bookmatch.services.book_reviewer_agent import (
     BookReviewerAgent,
 )
-
+from bookmatch.models.book import BookInput
 
 class FakeBookReviewerAgent(BookReviewerAgent):
     def review(
         self,
+        original_input: BookInput,
         book: EnrichedBook,
         classification: BookClassification,
     ) -> ClassificationReview:
@@ -53,7 +54,15 @@ def test_book_reviewer_agent_reviews_classification() -> None:
         confidence=0.9,
     )
 
-    result = agent.review(book, classification)
+    original_input = BookInput(
+    title="Dog Man",
+)
+
+    result = agent.review(
+        original_input,
+        book,
+        classification,
+    )
 
     assert isinstance(result, ClassificationReview)
     assert result.decision == ReviewDecision.APPROVED

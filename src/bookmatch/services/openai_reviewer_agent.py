@@ -4,7 +4,7 @@ from bookmatch.models.book import EnrichedBook
 from bookmatch.models.classification import BookClassification
 from bookmatch.models.classification_review import ClassificationReview
 from bookmatch.services.book_reviewer_agent import BookReviewerAgent
-
+from bookmatch.models.book import BookInput, EnrichedBook
 
 class OpenAIReviewerAgent(BookReviewerAgent):
     """Review book classifications using an OpenAI language model."""
@@ -19,6 +19,7 @@ class OpenAIReviewerAgent(BookReviewerAgent):
 
     def review(
         self,
+        original_input: BookInput,
         book: EnrichedBook,
         classification: BookClassification,
     ) -> ClassificationReview:
@@ -53,7 +54,11 @@ class OpenAIReviewerAgent(BookReviewerAgent):
                 {
                     "role": "user",
                     "content": (
-                        f"Book information:\n"
+                        f"Original user input:\n"
+                        f"Title: {original_input.title}\n"
+                        f"Author: {original_input.author}\n"
+                        f"ISBN: {original_input.isbn}\n\n"
+                        f"Selected book:\n"
                         f"Title: {book.title}\n"
                         f"Author: {book.author}\n"
                         f"Publication date: {book.publication_date}\n"
