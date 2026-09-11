@@ -7,10 +7,6 @@ from bookmatch.models.book_resolution import (
 from bookmatch.services.book_identification_service import BookIdentificationService
 from bookmatch.services.book_resolution_service import (
     BookResolutionService,
-)
-
-from bookmatch.services.book_resolution_service import (
-    BookResolutionService,
     BookResolutionServiceImpl,
 )
 

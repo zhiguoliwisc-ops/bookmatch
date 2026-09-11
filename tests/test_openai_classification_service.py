@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from openai import OpenAI
 
-from bookmatch.models.book import BookInput
+from bookmatch.models.book import EnrichedBook
 from bookmatch.models.classification import (
     AgeGroup,
     BookClassification,
@@ -13,6 +13,16 @@ from bookmatch.services.classification_service import ClassificationService
 from bookmatch.services.openai_classification_service import (
     OpenAIClassificationService,
 )
+from bookmatch.services.book_classifier_agent import (
+    BookClassifierAgent,
+)
+
+
+def test_openai_classification_service_implements_book_classifier_agent() -> None:
+    assert issubclass(
+        OpenAIClassificationService,
+        BookClassifierAgent,
+    )
 
 
 def test_openai_classification_service_implements_interface():
@@ -47,10 +57,13 @@ def test_openai_classification_service_returns_classification():
 
     service = OpenAIClassificationService(client)
 
-    book = BookInput(
+    book = EnrichedBook(
         title="Charlotte's Web",
         author="E. B. White",
+        publication_date="1952",
+        isbn="9780064400558",
         description="A children's novel about a pig and a spider.",
+        source="Test",
     )
 
     result = service.classify(book)
@@ -61,6 +74,7 @@ def test_openai_classification_service_returns_classification():
     assert result.reading_difficulty == ReadingDifficulty.MODERATE
     assert result.genre == "Children's Fiction"
     assert result.confidence == 0.9
+
 
 def test_openai_classification_service_raises_when_parsed_result_is_none():
     parsed_message = Mock()
@@ -77,9 +91,13 @@ def test_openai_classification_service_raises_when_parsed_result_is_none():
 
     service = OpenAIClassificationService(client)
 
-    book = BookInput(
+    book = EnrichedBook(
         title="Charlotte's Web",
         author="E. B. White",
+        publication_date=None,
+        isbn=None,
+        description=None,
+        source="Test",
     )
 
     with pytest.raises(

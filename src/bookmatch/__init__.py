@@ -83,7 +83,7 @@ def main() -> None:
 
     workflow = BookClassificationWorkflow(
         book_resolver=book_resolver,
-        classification_service=OpenAIClassificationService(
+        classifier_agent=OpenAIClassificationService(
             client=OpenAI(api_key=api_key),
         ),
     )

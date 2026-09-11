@@ -1,11 +1,16 @@
 from openai import OpenAI
 
-from bookmatch.models.book import BookInput
+from bookmatch.models.book import EnrichedBook
 from bookmatch.models.classification import BookClassification
 from bookmatch.services.classification_service import ClassificationService
+from bookmatch.services.book_classifier_agent import (
+    BookClassifierAgent,
+)
 
-
-class OpenAIClassificationService(ClassificationService):
+class OpenAIClassificationService(
+        ClassificationService,
+        BookClassifierAgent,
+    ):
     """Classify books using an OpenAI language model."""
 
     def __init__(
@@ -16,7 +21,10 @@ class OpenAIClassificationService(ClassificationService):
         self.client = client
         self.model = model
 
-    def classify(self, book: BookInput) -> BookClassification:
+    def classify(
+        self,
+        book: EnrichedBook,
+    ) -> BookClassification:
         completion = self.client.chat.completions.parse(
             model=self.model,
             messages=[
