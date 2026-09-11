@@ -1,43 +1,39 @@
 import os
 
 from dotenv import load_dotenv
+from google import genai
 from openai import OpenAI
 
-from bookmatch.services.book_resolution_service import (
-    BookResolutionServiceImpl,
-)
-
-from bookmatch.services.candidate_book_resolver import (
-    CandidateBookResolver,
-)
-
-from bookmatch.services.composite_book_candidate_service import (
-    CompositeBookCandidateService,
-)
-
-from bookmatch.services.google_books_book_candidate_service import (
-    GoogleBooksBookCandidateService,
-)
-
-from bookmatch.services.open_library_book_candidate_service import (
-    OpenLibraryBookCandidateService,
-)
-
-from bookmatch.services.openai_classification_service import (
-    OpenAIClassificationService,
-)
-
+from bookmatch.cli import run_cli
 from bookmatch.services.book_identification_service import (
     BookIdentificationService,
 )
-
+from bookmatch.services.book_resolution_service import (
+    BookResolutionServiceImpl,
+)
+from bookmatch.services.book_reviewer_agent import (
+    BookReviewerAgent,
+)
+from bookmatch.services.candidate_book_resolver import (
+    CandidateBookResolver,
+)
+from bookmatch.services.composite_book_candidate_service import (
+    CompositeBookCandidateService,
+)
+from bookmatch.services.gemini_reviewer_agent import (
+    GeminiReviewerAgent,
+)
+from bookmatch.services.google_books_book_candidate_service import (
+    GoogleBooksBookCandidateService,
+)
+from bookmatch.services.openai_classification_service import (
+    OpenAIClassificationService,
+)
+from bookmatch.services.open_library_book_candidate_service import (
+    OpenLibraryBookCandidateService,
+)
 from bookmatch.workflow.book_classification_workflow import (
     BookClassificationWorkflow,
-)
-
-from bookmatch.cli import run_cli
-from bookmatch.services.openai_reviewer_agent import (
-    OpenAIReviewerAgent,
 )
 
 
@@ -46,14 +42,22 @@ def main() -> None:
 
     load_dotenv()
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY is not configured.")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise ValueError(
+            "OPENAI_API_KEY is not configured."
+        )
 
     google_books_api_key = os.getenv("GOOGLE_BOOKS_API_KEY")
     if not google_books_api_key:
         raise ValueError(
             "GOOGLE_BOOKS_API_KEY is not configured."
+        )
+
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_api_key:
+        raise ValueError(
+            "GEMINI_API_KEY is not configured."
         )
 
     google_books_candidate_service = (
@@ -84,15 +88,27 @@ def main() -> None:
         resolution_service=resolution_service,
     )
 
-    reviewer_agent = OpenAIReviewerAgent(
-    client=OpenAI(api_key=api_key),
-)
+    classifier_agent = OpenAIClassificationService(
+        client=OpenAI(
+            api_key=openai_api_key,
+        ),
+    )
+
+    gemini_client = genai.Client(
+        api_key=gemini_api_key,
+    )
+
+    reviewer_agent: BookReviewerAgent = GeminiReviewerAgent(
+        client=gemini_client,
+    )
+
+    #reviewer_agent = OpenAIReviewerAgent(
+    #    client=OpenAI(api_key=api_key),
+    #)
 
     workflow = BookClassificationWorkflow(
         book_resolver=book_resolver,
-        classifier_agent=OpenAIClassificationService(
-            client=OpenAI(api_key=api_key),
-        ),
+        classifier_agent=classifier_agent,
         reviewer_agent=reviewer_agent,
     )
 
