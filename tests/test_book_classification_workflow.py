@@ -1,3 +1,4 @@
+from unittest.mock import Mock
 from bookmatch.models.book import BookInput, EnrichedBook
 from bookmatch.models.classification import (
     AgeGroup,
@@ -17,6 +18,7 @@ import pytest
 from bookmatch.services.exceptions import (
     BookInformationServiceError,
 )
+from bookmatch.models.book import BookInput, EnrichedBook
 
 class FakeBookResolver(BookResolver):
     def resolve(self, book: BookInput) -> EnrichedBook:
@@ -117,3 +119,44 @@ def test_workflow_propagates_book_information_service_error():
 
     with pytest.raises(BookInformationServiceError):
         workflow.run(book)
+
+def test_classify_book_classifies_already_resolved_book() -> None:
+    book_resolver = Mock(spec=BookResolver)
+    classification_service = Mock(
+        spec=ClassificationService
+    )
+
+    enriched_book = EnrichedBook(
+        title="Dog Man",
+        author="Dav Pilkey",
+        publication_date="2016",
+        isbn="1338611941",
+        description="A graphic novel about Dog Man.",
+        source="Google Books",
+    )
+
+    classification = BookClassification(
+        recommended_age_group=AgeGroup.ELEMENTARY,
+        minimum_age=6,
+        maximum_age=10,
+        reading_difficulty=ReadingDifficulty.EASY,
+        genre="Graphic Novel",
+        confidence=0.95,
+    )
+
+    classification_service.classify.return_value = classification
+
+    workflow = BookClassificationWorkflow(
+        book_resolver=book_resolver,
+        classification_service=classification_service,
+    )
+
+    result = workflow.classify_book(enriched_book)
+
+    assert result == classification
+
+    classification_service.classify.assert_called_once_with(
+        enriched_book
+    )
+
+    book_resolver.resolve.assert_not_called()

@@ -4,7 +4,8 @@ from bookmatch.services.book_resolver import BookResolver
 from bookmatch.services.classification_service import (
     ClassificationService,
 )
-
+from bookmatch.models.book import BookInput, EnrichedBook
+from bookmatch.models.classification import BookClassification
 
 class BookClassificationWorkflow:
     """Coordinate book resolution and classification."""
@@ -30,3 +31,10 @@ class BookClassificationWorkflow:
             book=enriched_book,
             classification=classification,
         )
+
+    def classify_book(
+        self,
+        book: EnrichedBook,
+    ) -> BookClassification:
+        """Classify an already resolved book."""
+        return self.classification_service.classify(book)

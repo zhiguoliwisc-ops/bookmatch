@@ -4,15 +4,15 @@ import pytest
 
 from bookmatch.models.book import BookInput, EnrichedBook
 from bookmatch.models.book_candidate import BookCandidate
-from bookmatch.models.book_identification import (
-    BookIdentification,
-    IdentificationStatus,
+from bookmatch.models.book_resolution import (
+    BookResolution,
+    ResolutionDecision,
 )
 from bookmatch.services.book_candidate_service import (
     BookCandidateService,
 )
-from bookmatch.services.book_identification_service import (
-    BookIdentificationService,
+from bookmatch.services.book_resolution_service import (
+    BookResolutionService,
 )
 from bookmatch.services.candidate_book_resolver import (
     CandidateBookResolver,
@@ -45,8 +45,8 @@ def create_candidate(
 
 def test_exact_match_returns_enriched_book() -> None:
     candidate_service = Mock(spec=BookCandidateService)
-    identification_service = Mock(
-        spec=BookIdentificationService
+    resolution_service = Mock(
+        spec=BookResolutionService
     )
 
     candidate = create_candidate()
@@ -55,18 +55,14 @@ def test_exact_match_returns_enriched_book() -> None:
         candidate
     ]
 
-    identification_service.identify.return_value = (
-        BookIdentification(
-            status=IdentificationStatus.EXACT_MATCH,
-            matched_book=candidate.book,
-            confidence=1.0,
-            reason="Title and author match the input.",
-        )
+    resolution_service.resolve.return_value = BookResolution(
+        decision=ResolutionDecision.AUTO_RESOLVE,
+        selected_book=candidate.book,
     )
 
     resolver = CandidateBookResolver(
         candidate_service=candidate_service,
-        identification_service=identification_service,
+        resolution_service=resolution_service,
     )
 
     book = BookInput(
@@ -82,7 +78,7 @@ def test_exact_match_returns_enriched_book() -> None:
         book
     )
 
-    identification_service.identify.assert_called_once_with(
+    resolution_service.resolve.assert_called_once_with(
         book,
         [candidate],
     )
@@ -90,8 +86,8 @@ def test_exact_match_returns_enriched_book() -> None:
 
 def test_corrected_match_returns_enriched_book() -> None:
     candidate_service = Mock(spec=BookCandidateService)
-    identification_service = Mock(
-        spec=BookIdentificationService
+    resolution_service = Mock(
+        spec=BookResolutionService
     )
 
     candidate = create_candidate(
@@ -106,21 +102,14 @@ def test_corrected_match_returns_enriched_book() -> None:
         candidate
     ]
 
-    identification_service.identify.return_value = (
-        BookIdentification(
-            status=IdentificationStatus.CORRECTED_MATCH,
-            matched_book=candidate.book,
-            confidence=0.95,
-            reason=(
-                "Input title matched a longer canonical "
-                "title with the same author."
-            ),
-        )
+    resolution_service.resolve.return_value = BookResolution(
+        decision=ResolutionDecision.AUTO_RESOLVE,
+        selected_book=candidate.book,
     )
 
     resolver = CandidateBookResolver(
         candidate_service=candidate_service,
-        identification_service=identification_service,
+        resolution_service=resolution_service,
     )
 
     book = BookInput(
@@ -136,7 +125,7 @@ def test_corrected_match_returns_enriched_book() -> None:
         book
     )
 
-    identification_service.identify.assert_called_once_with(
+    resolution_service.resolve.assert_called_once_with(
         book,
         [candidate],
     )
@@ -144,24 +133,19 @@ def test_corrected_match_returns_enriched_book() -> None:
 
 def test_not_found_raises_book_not_found_error() -> None:
     candidate_service = Mock(spec=BookCandidateService)
-    identification_service = Mock(
-        spec=BookIdentificationService
+    resolution_service = Mock(
+        spec=BookResolutionService
     )
 
     candidate_service.find_candidates.return_value = []
 
-    identification_service.identify.return_value = (
-        BookIdentification(
-            status=IdentificationStatus.NOT_FOUND,
-            matched_book=None,
-            confidence=0.0,
-            reason="No candidate books were found.",
-        )
+    resolution_service.resolve.return_value = BookResolution(
+        decision=ResolutionDecision.NOT_FOUND,
     )
 
     resolver = CandidateBookResolver(
         candidate_service=candidate_service,
-        identification_service=identification_service,
+        resolution_service=resolution_service,
     )
 
     book = BookInput(
@@ -176,7 +160,7 @@ def test_not_found_raises_book_not_found_error() -> None:
         book
     )
 
-    identification_service.identify.assert_called_once_with(
+    resolution_service.resolve.assert_called_once_with(
         book,
         [],
     )
@@ -184,47 +168,53 @@ def test_not_found_raises_book_not_found_error() -> None:
 
 def test_ambiguous_match_raises_ambiguous_book_error() -> None:
     candidate_service = Mock(spec=BookCandidateService)
-    identification_service = Mock(
-        spec=BookIdentificationService
+    resolution_service = Mock(
+        spec=BookResolutionService
     )
 
     candidates = [
-        create_candidate(),
-        create_candidate(),
+        create_candidate(
+            title="Dog Man",
+            author="Dav Pilkey",
+        ),
+        create_candidate(
+            title="Dog Man",
+            author="Maurice Procter",
+        ),
     ]
 
     candidate_service.find_candidates.return_value = candidates
 
-    identification_service.identify.return_value = (
-        BookIdentification(
-            status=IdentificationStatus.AMBIGUOUS,
-            matched_book=None,
-            confidence=0.5,
-            reason=(
-                "Multiple candidates match the title "
-                "and author."
-            ),
-        )
+    resolution_service.resolve.return_value = BookResolution(
+        decision=ResolutionDecision.ASK_USER,
+        candidates=[
+            candidate.book
+            for candidate in candidates
+        ],
     )
 
     resolver = CandidateBookResolver(
         candidate_service=candidate_service,
-        identification_service=identification_service,
+        resolution_service=resolution_service,
     )
 
     book = BookInput(
-        title="The Outsiders",
-        author="S. E. Hinton",
+        title="Dog Man",
     )
 
-    with pytest.raises(AmbiguousBookError):
+    with pytest.raises(AmbiguousBookError) as error:
         resolver.resolve(book)
+
+    assert error.value.candidates == [
+        candidate.book
+        for candidate in candidates
+    ]
 
     candidate_service.find_candidates.assert_called_once_with(
         book
     )
 
-    identification_service.identify.assert_called_once_with(
+    resolution_service.resolve.assert_called_once_with(
         book,
         candidates,
     )
@@ -232,8 +222,8 @@ def test_ambiguous_match_raises_ambiguous_book_error() -> None:
 
 def test_provider_failure_propagates_book_information_service_error() -> None:
     candidate_service = Mock(spec=BookCandidateService)
-    identification_service = Mock(
-        spec=BookIdentificationService
+    resolution_service = Mock(
+        spec=BookResolutionService
     )
 
     candidate_service.find_candidates.side_effect = (
@@ -244,7 +234,7 @@ def test_provider_failure_propagates_book_information_service_error() -> None:
 
     resolver = CandidateBookResolver(
         candidate_service=candidate_service,
-        identification_service=identification_service,
+        resolution_service=resolution_service,
     )
 
     book = BookInput(
@@ -259,4 +249,4 @@ def test_provider_failure_propagates_book_information_service_error() -> None:
         book
     )
 
-    identification_service.identify.assert_not_called()
+    resolution_service.resolve.assert_not_called()

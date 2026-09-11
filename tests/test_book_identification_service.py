@@ -564,3 +564,38 @@ def test_extract_author_preserves_multiple_real_authors() -> None:
 
     assert result == "Author One, Author Two"
 
+def test_same_title_with_different_authors_is_ambiguous():
+    service = BookIdentificationService()
+
+    candidates = [
+        BookCandidate(
+            book=EnrichedBook(
+                title="Dog Man",
+                author="Dav Pilkey",
+                publication_date=None,
+                isbn="1338611941",
+                description=None,
+                source="Google Books",
+            ),
+            provider="Google Books",
+        ),
+        BookCandidate(
+            book=EnrichedBook(
+                title="Dog Man",
+                author="Maurice Procter",
+                publication_date=None,
+                isbn=None,
+                description=None,
+                source="Open Library",
+            ),
+            provider="Open Library",
+        ),
+    ]
+
+    result = service.identify(
+        BookInput(title="Dog Man"),
+        candidates,
+    )
+
+    assert result.status == IdentificationStatus.AMBIGUOUS
+    assert result.matched_book is None

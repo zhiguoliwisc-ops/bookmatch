@@ -3,10 +3,8 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from bookmatch.models.book import BookInput
-
-from bookmatch.services.book_identification_service import (
-    BookIdentificationService,
+from bookmatch.services.book_resolution_service import (
+    BookResolutionServiceImpl,
 )
 
 from bookmatch.services.candidate_book_resolver import (
@@ -29,9 +27,15 @@ from bookmatch.services.openai_classification_service import (
     OpenAIClassificationService,
 )
 
+from bookmatch.services.book_identification_service import (
+    BookIdentificationService,
+)
+
 from bookmatch.workflow.book_classification_workflow import (
     BookClassificationWorkflow,
 )
+
+from bookmatch.cli import run_cli
 
 
 def main() -> None:
@@ -45,17 +49,9 @@ def main() -> None:
 
     google_books_api_key = os.getenv("GOOGLE_BOOKS_API_KEY")
     if not google_books_api_key:
-        raise ValueError("GOOGLE_BOOKS_API_KEY is not configured.")
-
-    title = input("Enter book title: ").strip()
-    author = input("Enter author: ").strip() or None
-    isbn = input("Enter ISBN (optional): ").strip() or None
-
-    book = BookInput(
-        title=title,
-        author=author,
-        isbn=isbn,
-    )
+        raise ValueError(
+            "GOOGLE_BOOKS_API_KEY is not configured."
+        )
 
     google_books_candidate_service = (
         GoogleBooksBookCandidateService(
@@ -74,9 +70,15 @@ def main() -> None:
         ],
     )
 
+    identification_service = BookIdentificationService()
+
+    resolution_service = BookResolutionServiceImpl(
+        identification_service=identification_service,
+    )
+
     book_resolver = CandidateBookResolver(
         candidate_service=candidate_service,
-        identification_service=BookIdentificationService(),
+        resolution_service=resolution_service,
     )
 
     workflow = BookClassificationWorkflow(
@@ -86,22 +88,4 @@ def main() -> None:
         ),
     )
 
-    result = workflow.run(book)
-
-    print()
-    print(f"Title: {result.book.title}")
-    print(f"Author: {result.book.author}")
-    print(
-        f"Recommended age group: "
-        f"{result.classification.recommended_age_group.value}"
-    )
-    print(
-        f"Recommended age range: "
-        f"{result.classification.minimum_age}–"
-        f"{result.classification.maximum_age} years old"
-    )
-    print(
-        f"Reading difficulty: "
-        f"{result.classification.reading_difficulty.value} / 5"
-    )
-    print(f"Genre: {result.classification.genre}")
+    run_cli(workflow)

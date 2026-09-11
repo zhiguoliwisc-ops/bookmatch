@@ -1,11 +1,14 @@
 from bookmatch.models.book import BookInput, EnrichedBook
-from bookmatch.models.book_identification import IdentificationStatus
 from bookmatch.services.book_candidate_service import BookCandidateService
-from bookmatch.services.book_identification_service import BookIdentificationService
 from bookmatch.services.book_resolver import BookResolver
 from bookmatch.services.exceptions import (
     AmbiguousBookError,
     BookNotFoundError,
+)
+
+from bookmatch.models.book_resolution import ResolutionDecision
+from bookmatch.services.book_resolution_service import (
+    BookResolutionService,
 )
 
 
@@ -15,41 +18,33 @@ class CandidateBookResolver(BookResolver):
     def __init__(
         self,
         candidate_service: BookCandidateService,
-        identification_service: BookIdentificationService,
+        resolution_service: BookResolutionService,
     ) -> None:
         self.candidate_service = candidate_service
-        self.identification_service = identification_service
+        self.resolution_service = resolution_service
 
-    def resolve(
-        self,
-        book: BookInput,
-    ) -> EnrichedBook:
-        """Resolve a book input to an identified enriched book."""
-
+    def resolve(self, book: BookInput) -> EnrichedBook:
         candidates = self.candidate_service.find_candidates(book)
 
-        identification = self.identification_service.identify(
+        resolution = self.resolution_service.resolve(
             book,
             candidates,
         )
 
-        if identification.status in {
-            IdentificationStatus.EXACT_MATCH,
-            IdentificationStatus.CORRECTED_MATCH,
-        }:
-            if identification.matched_book is None:
+        if resolution.decision == ResolutionDecision.AUTO_RESOLVE:
+            if resolution.selected_book is None:
                 raise BookNotFoundError(
-                    "Book identification returned a match status "
-                    "without a matched book."
+                    "Resolution returned AUTO_RESOLVE without a selected book."
                 )
 
-            return identification.matched_book
+            return resolution.selected_book
 
-        if identification.status == IdentificationStatus.AMBIGUOUS:
+        if resolution.decision == ResolutionDecision.ASK_USER:
             raise AmbiguousBookError(
-                identification.reason
+                "Multiple possible books were found.",
+                candidates=resolution.candidates,
             )
 
         raise BookNotFoundError(
-            identification.reason
+            "No matching book was found."
         )
