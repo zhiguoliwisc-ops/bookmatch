@@ -15,6 +15,11 @@ from bookmatch.cli import (
     select_book_from_candidates,
 )
 
+from bookmatch.models.classification_review import (
+    ClassificationReview,
+    ReviewDecision,
+)
+
 def create_book(
     title: str,
     author: str,
@@ -118,6 +123,12 @@ def test_run_cli_handles_ambiguous_book() -> None:
         confidence=0.9,
     )
 
+    review = ClassificationReview(
+        decision=ReviewDecision.APPROVED,
+        confidence=0.95,
+        reason="The classification is consistent with the book evidence.",
+    )
+
     workflow = Mock()
 
     workflow.run.side_effect = AmbiguousBookError(
@@ -126,6 +137,7 @@ def test_run_cli_handles_ambiguous_book() -> None:
     )
 
     workflow.classify_book.return_value = classification
+    workflow.review_book.return_value = review
 
     with patch(
         "bookmatch.cli.input",
@@ -142,3 +154,53 @@ def test_run_cli_handles_ambiguous_book() -> None:
     workflow.classify_book.assert_called_once_with(
         candidates[0]
     )
+    workflow.review_book.assert_called_once_with(
+        candidates[0],
+        classification,
+    )
+def test_run_cli_displays_review(
+    monkeypatch,
+    capsys,
+) -> None:
+    workflow = Mock()
+
+    workflow.run.return_value = BookMatchResult(
+        book=EnrichedBook(
+            title="Dog Man",
+            author="Dav Pilkey",
+            publication_date="2016",
+            isbn="1338611941",
+            description="A graphic novel about a dog-headed police officer.",
+            source="Test",
+        ),
+        classification=BookClassification(
+            recommended_age_group=AgeGroup.ELEMENTARY,
+            minimum_age=6,
+            maximum_age=10,
+            reading_difficulty=ReadingDifficulty.EASY,
+            genre="Graphic Novel",
+            confidence=0.9,
+        ),
+        review=ClassificationReview(
+            decision=ReviewDecision.APPROVED,
+            confidence=0.95,
+            reason="The classification is consistent with the book evidence.",
+        ),
+    )
+
+    monkeypatch.setattr(
+        "builtins.input",
+        Mock(
+            side_effect=[
+                "Dog Man",
+                "Dav Pilkey",
+                "",
+            ]
+        ),
+    )
+
+    run_cli(workflow)
+
+    output = capsys.readouterr().out
+
+    assert "Review decision: approved" in output

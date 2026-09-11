@@ -36,6 +36,9 @@ from bookmatch.workflow.book_classification_workflow import (
 )
 
 from bookmatch.cli import run_cli
+from bookmatch.services.openai_reviewer_agent import (
+    OpenAIReviewerAgent,
+)
 
 
 def main() -> None:
@@ -81,11 +84,16 @@ def main() -> None:
         resolution_service=resolution_service,
     )
 
+    reviewer_agent = OpenAIReviewerAgent(
+    client=OpenAI(api_key=api_key),
+)
+
     workflow = BookClassificationWorkflow(
         book_resolver=book_resolver,
         classifier_agent=OpenAIClassificationService(
             client=OpenAI(api_key=api_key),
         ),
+        reviewer_agent=reviewer_agent,
     )
 
     run_cli(workflow)

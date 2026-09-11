@@ -63,9 +63,15 @@ def run_cli(
             selected_book
         )
 
+        review = workflow.review_book(
+            selected_book,
+            classification,
+        )
+
         result = BookMatchResult(
             book=selected_book,
             classification=classification,
+            review=review,
         )
 
     print()
@@ -85,3 +91,8 @@ def run_cli(
         f"{result.classification.reading_difficulty.value} / 5"
     )
     print(f"Genre: {result.classification.genre}")
+
+    if result.review is not None:
+        print(f"\nReview decision: {result.review.decision.value}")
+        print(f"Review confidence: {result.review.confidence:.2f}")
+        print(f"Review reason: {result.review.reason}")

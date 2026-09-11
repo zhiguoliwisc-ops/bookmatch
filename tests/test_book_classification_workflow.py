@@ -22,7 +22,25 @@ from bookmatch.services.exceptions import (
 from bookmatch.workflow.book_classification_workflow import (
     BookClassificationWorkflow,
 )
+from bookmatch.models.classification_review import (
+    ClassificationReview,
+    ReviewDecision,
+)
+from bookmatch.services.book_reviewer_agent import (
+    BookReviewerAgent,
+)
 
+class FakeBookReviewerAgent(BookReviewerAgent):
+    def review(
+        self,
+        book: EnrichedBook,
+        classification: BookClassification,
+    ) -> ClassificationReview:
+        return ClassificationReview(
+            decision=ReviewDecision.APPROVED,
+            confidence=0.95,
+            reason="The classification is consistent with the book evidence.",
+        )
 
 class FakeBookResolver(BookResolver):
     def resolve(self, book: BookInput) -> EnrichedBook:
@@ -57,6 +75,19 @@ class FakeClassificationService(ClassificationService):
             confidence=0.95,
         )
 
+class FakeBookClassifierAgent(BookClassifierAgent):
+    def classify(
+        self,
+        book: EnrichedBook,
+    ) -> BookClassification:
+        return BookClassification(
+            recommended_age_group=AgeGroup.PRESCHOOL,
+            minimum_age=3,
+            maximum_age=5,
+            reading_difficulty=ReadingDifficulty.VERY_EASY,
+            genre="Children's Fiction",
+            confidence=0.95,
+        )
 
 def test_book_classification_workflow():
     book_resolver = FakeBookResolver()
@@ -65,6 +96,7 @@ def test_book_classification_workflow():
     workflow = BookClassificationWorkflow(
         book_resolver=book_resolver,
         classifier_agent=classification_service,
+        reviewer_agent=FakeBookReviewerAgent(),
     )
 
     book = BookInput(
@@ -98,6 +130,7 @@ def test_workflow_uses_book_resolver():
     workflow = BookClassificationWorkflow(
         book_resolver=book_resolver,
         classifier_agent=classification_service,
+        reviewer_agent=FakeBookReviewerAgent(),
     )
 
     book = BookInput(
@@ -120,6 +153,7 @@ def test_workflow_propagates_book_information_service_error():
     workflow = BookClassificationWorkflow(
         book_resolver=book_resolver,
         classifier_agent=classification_service,
+        reviewer_agent=FakeBookReviewerAgent(),
     )
 
     book = BookInput(
@@ -160,6 +194,7 @@ def test_classify_book_classifies_already_resolved_book() -> None:
     workflow = BookClassificationWorkflow(
         book_resolver=book_resolver,
         classifier_agent=classification_service,
+        reviewer_agent=FakeBookReviewerAgent(),
     )
 
     result = workflow.classify_book(enriched_book)
@@ -201,6 +236,7 @@ def test_workflow_accepts_book_classifier_agent() -> None:
     workflow = BookClassificationWorkflow(
         book_resolver=book_resolver,
         classifier_agent=classifier_agent,
+        reviewer_agent=FakeBookReviewerAgent(),
     )
 
     result = workflow.run(
@@ -215,3 +251,49 @@ def test_workflow_accepts_book_classifier_agent() -> None:
     classifier_agent.classify.assert_called_once_with(
         enriched_book
     )
+
+def test_workflow_reviews_classification() -> None:
+    resolver = FakeBookResolver()
+    classifier_agent = FakeBookClassifierAgent()
+    reviewer_agent = FakeBookReviewerAgent()
+
+    workflow = BookClassificationWorkflow(
+        book_resolver=resolver,
+        classifier_agent=classifier_agent,
+        reviewer_agent=reviewer_agent,
+    )
+
+    book = BookInput(title="Dog Man")
+
+    result = workflow.run(book)
+
+    assert isinstance(result, BookMatchResult)
+    assert result.review is not None
+    assert result.review.decision == ReviewDecision.APPROVED
+    assert result.review.confidence == 0.95
+
+def test_workflow_returns_needs_revision_without_changing_classification() -> None:
+    resolver = FakeBookResolver()
+    classifier_agent = FakeBookClassifierAgent()
+
+    reviewer_agent = Mock(spec=BookReviewerAgent)
+
+    review = ClassificationReview(
+        decision=ReviewDecision.NEEDS_REVISION,
+        confidence=0.80,
+        reason="The proposed genre is not well supported by the evidence.",
+    )
+
+    reviewer_agent.review.return_value = review
+
+    workflow = BookClassificationWorkflow(
+        book_resolver=resolver,
+        classifier_agent=classifier_agent,
+        reviewer_agent=reviewer_agent,
+    )
+
+    result = workflow.run(BookInput(title="Dog Man"))
+
+    assert result.classification.genre == "Children's Fiction"
+    assert result.review is not None
+    assert result.review.decision == ReviewDecision.NEEDS_REVISION
