@@ -5,7 +5,10 @@ from bookmatch.services.candidate_deduplication import (
     deduplicate_candidates,
 )
 from bookmatch.services.exceptions import BookInformationServiceError
-
+from bookmatch.services.candidate_ranking import (
+    filter_candidates_by_relevance,
+    rank_candidates,
+)
 
 class CompositeBookCandidateService(BookCandidateService):
     """Combine candidates from multiple candidate services."""
@@ -36,4 +39,14 @@ class CompositeBookCandidateService(BookCandidateService):
                 "All book information providers failed."
             )
 
-        return deduplicate_candidates(candidates)
+        candidates = deduplicate_candidates(candidates)
+
+        candidates = filter_candidates_by_relevance(
+            book,
+            candidates,
+        )
+
+        return rank_candidates(
+            book,
+            candidates,
+        )

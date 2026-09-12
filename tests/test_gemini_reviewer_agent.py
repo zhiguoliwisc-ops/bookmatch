@@ -12,13 +12,12 @@ from bookmatch.models.classification_review import (
     ClassificationReview,
     ReviewDecision,
 )
+from bookmatch.services.gemini_reviewer_agent import (
+    GeminiReviewerAgent,
+)
 
 
 def test_gemini_reviewer_agent_returns_review() -> None:
-    from bookmatch.services.gemini_reviewer_agent import (
-        GeminiReviewerAgent,
-    )
-
     original_input = BookInput(
         title="Dog Man",
     )
@@ -47,11 +46,11 @@ def test_gemini_reviewer_agent_returns_review() -> None:
         reason="The classification is consistent with the book evidence.",
     )
 
-    mock_response = Mock()
-    mock_response.parsed = parsed_review
+    mock_interaction = Mock()
+    mock_interaction.output_text = parsed_review.model_dump_json()
 
     mock_client = Mock()
-    mock_client.models.generate_content.return_value = mock_response
+    mock_client.interactions.create.return_value = mock_interaction
 
     agent = GeminiReviewerAgent(client=mock_client)
 
@@ -66,11 +65,7 @@ def test_gemini_reviewer_agent_returns_review() -> None:
     assert result.confidence == 0.95
 
 
-def test_gemini_reviewer_agent_raises_when_parsed_review_is_none() -> None:
-    from bookmatch.services.gemini_reviewer_agent import (
-        GeminiReviewerAgent,
-    )
-
+def test_gemini_reviewer_agent_raises_when_output_text_is_none() -> None:
     original_input = BookInput(
         title="Dog Man",
     )
@@ -93,11 +88,11 @@ def test_gemini_reviewer_agent_raises_when_parsed_review_is_none() -> None:
         confidence=0.9,
     )
 
-    mock_response = Mock()
-    mock_response.parsed = None
+    mock_interaction = Mock()
+    mock_interaction.output_text = None
 
     mock_client = Mock()
-    mock_client.models.generate_content.return_value = mock_response
+    mock_client.interactions.create.return_value = mock_interaction
 
     agent = GeminiReviewerAgent(client=mock_client)
 
@@ -110,10 +105,6 @@ def test_gemini_reviewer_agent_raises_when_parsed_review_is_none() -> None:
 
 
 def test_gemini_reviewer_agent_sends_review_input() -> None:
-    from bookmatch.services.gemini_reviewer_agent import (
-        GeminiReviewerAgent,
-    )
-
     original_input = BookInput(
         title="Dog Man",
     )
@@ -142,11 +133,11 @@ def test_gemini_reviewer_agent_sends_review_input() -> None:
         reason="The classification is consistent with the book evidence.",
     )
 
-    mock_response = Mock()
-    mock_response.parsed = parsed_review
+    mock_interaction = Mock()
+    mock_interaction.output_text = parsed_review.model_dump_json()
 
     mock_client = Mock()
-    mock_client.models.generate_content.return_value = mock_response
+    mock_client.interactions.create.return_value = mock_interaction
 
     agent = GeminiReviewerAgent(client=mock_client)
 
@@ -156,13 +147,13 @@ def test_gemini_reviewer_agent_sends_review_input() -> None:
         classification,
     )
 
-    mock_client.models.generate_content.assert_called_once()
+    mock_client.interactions.create.assert_called_once()
 
     call_kwargs = (
-        mock_client.models.generate_content.call_args.kwargs
+        mock_client.interactions.create.call_args.kwargs
     )
 
-    prompt = call_kwargs["contents"]
+    prompt = call_kwargs["input"]
 
     assert "Dog Man" in prompt
     assert "Dav Pilkey" in prompt
@@ -171,3 +162,12 @@ def test_gemini_reviewer_agent_sends_review_input() -> None:
     assert "Elementary" in prompt
     assert "6–10" in prompt
     assert "Graphic Novel" in prompt
+
+    response_format = call_kwargs["response_format"]
+
+    assert response_format["type"] == "text"
+    assert response_format["mime_type"] == "application/json"
+    assert (
+        response_format["schema"]
+        == ClassificationReview.model_json_schema()
+    )

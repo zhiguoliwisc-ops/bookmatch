@@ -42,7 +42,7 @@ def run_cli(
     """Run the interactive BookMatch CLI."""
 
     title = input("Enter book title: ").strip()
-    author = input("Enter author: ").strip() or None
+    author = input("Enter author (optional): ").strip() or None
     isbn = input("Enter ISBN (optional): ").strip() or None
 
     book = BookInput(
@@ -75,7 +75,8 @@ def run_cli(
             review=review,
         )
 
-    print()
+    print('---------------------------------------------')
+    print("BookMatch Result:\n")
     print(f"Title: {result.book.title}")
     print(f"Author: {result.book.author}")
     print(
@@ -92,8 +93,10 @@ def run_cli(
         f"{result.classification.reading_difficulty.value} / 5"
     )
     print(f"Genre: {result.classification.genre}")
-
+ 
     if result.review is not None:
-        print(f"\nReview decision: {result.review.decision.value}")
+        print('---------------------------------------------')
+        print("Review Details:\n")
+        print(f"Review decision: {result.review.decision.value}")
         print(f"Review confidence: {result.review.confidence:.2f}")
         print(f"Review reason: {result.review.reason}")

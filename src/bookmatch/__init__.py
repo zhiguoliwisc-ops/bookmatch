@@ -102,7 +102,7 @@ def main() -> None:
         client=gemini_client,
     )
 
-    #reviewer_agent = OpenAIReviewerAgent(
+    #reviewer_agent: BookReviewerAgent = OpenAIReviewerAgent(
     #    client=OpenAI(api_key=api_key),
     #)
 

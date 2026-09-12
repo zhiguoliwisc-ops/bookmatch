@@ -59,20 +59,21 @@ class GeminiReviewerAgent(BookReviewerAgent):
             f"Genre: {classification.genre}"
         )
 
-        response = self.client.models.generate_content(
+        interaction = self.client.interactions.create(
             model=self.model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=ClassificationReview,
-            ),
+            input=prompt,
+            response_format={
+                "type": "text",
+                "mime_type": "application/json",
+                "schema": ClassificationReview.model_json_schema(),
+            },
         )
 
-        result = response.parsed
-
-        if result is None:
+        if interaction.output_text is None:
             raise ValueError(
                 "Gemini did not return a valid classification review."
             )
 
-        return result
+        return ClassificationReview.model_validate_json(
+            interaction.output_text
+        )
