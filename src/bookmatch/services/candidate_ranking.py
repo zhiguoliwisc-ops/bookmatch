@@ -5,6 +5,9 @@ from bookmatch.services.candidate_relevance import (
 )
 
 
+MAX_DISPLAYED_CANDIDATES = 10
+
+
 def rank_candidates(
     book: BookInput,
     candidates: list[BookCandidate],
@@ -35,3 +38,11 @@ def filter_candidates_by_relevance(
             candidate,
         ) > 0
     ]
+
+
+def limit_candidates(
+    candidates: list[BookCandidate],
+) -> list[BookCandidate]:
+    """Limit candidates to the maximum displayed count."""
+
+    return candidates[:MAX_DISPLAYED_CANDIDATES]

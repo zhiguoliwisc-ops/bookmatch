@@ -1,11 +1,10 @@
 from bookmatch.models.book import BookInput, EnrichedBook
 from bookmatch.models.book_candidate import BookCandidate
-from bookmatch.services.candidate_ranking import (
-    rank_candidates,
-)
+
 from bookmatch.services.candidate_ranking import (
     filter_candidates_by_relevance,
     rank_candidates,
+    limit_candidates,
 )
 
 def create_candidate(
@@ -107,3 +106,35 @@ def test_filter_candidates_removes_zero_relevance_candidates() -> None:
         "16 Forever",
         "Forever Strong",
     ]
+
+
+def test_limit_candidates_returns_top_10() -> None:
+    candidates = [
+        create_candidate(
+            f"Book {index}",
+            f"Author {index}",
+        )
+        for index in range(1, 16)
+    ]
+
+    limited = limit_candidates(candidates)
+
+    assert len(limited) == 10
+    assert [candidate.book.title for candidate in limited] == [
+        f"Book {index}"
+        for index in range(1, 11)
+    ]
+
+
+def test_limit_candidates_returns_all_when_fewer_than_10() -> None:
+    candidates = [
+        create_candidate(
+            f"Book {index}",
+            f"Author {index}",
+        )
+        for index in range(1, 6)
+    ]
+
+    limited = limit_candidates(candidates)
+
+    assert limited == candidates

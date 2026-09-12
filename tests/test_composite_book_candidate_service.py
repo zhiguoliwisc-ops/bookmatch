@@ -333,3 +333,27 @@ def test_composite_candidate_service_ranks_candidates() -> None:
     assert candidates[0].book.title == "16 Forever"
     assert candidates[1].book.title == "Forever Strong"
     assert len(candidates) == 2
+
+def test_composite_candidate_service_limits_candidates_to_10() -> None:
+    book = BookInput(title="Book")
+
+    first_service = Mock()
+    first_service.find_candidates.return_value = [
+        create_candidate(
+            f"Book {index}",
+            f"Author {index}",
+        )
+        for index in range(1, 16)
+    ]
+
+    service = CompositeBookCandidateService(
+        services=[first_service],
+    )
+
+    candidates = service.find_candidates(book)
+
+    assert len(candidates) == 10
+    assert [candidate.book.title for candidate in candidates] == [
+        f"Book {index}"
+        for index in range(1, 11)
+    ]
