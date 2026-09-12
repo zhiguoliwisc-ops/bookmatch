@@ -1,5 +1,8 @@
 from bookmatch.models.book import BookInput, EnrichedBook
 from bookmatch.models.result import BookMatchResult
+from bookmatch.services.candidate_display_deduplication import (
+    deduplicate_display_candidates,
+)
 from bookmatch.services.exceptions import AmbiguousBookError
 from bookmatch.workflow.book_classification_workflow import (
     BookClassificationWorkflow,
@@ -10,6 +13,8 @@ def select_book_from_candidates(
     candidates: list[EnrichedBook],
 ) -> EnrichedBook:
     """Prompt the user to select one book from multiple candidates."""
+
+    candidates = deduplicate_display_candidates(candidates)
 
     print()
     print("Multiple possible books were found:")
@@ -75,8 +80,9 @@ def run_cli(
             review=review,
         )
 
-    print('---------------------------------------------')
-    print("BookMatch Result:\n")
+    print("---------------------------------------------")
+    print("BookMatch Result:")
+    print()
     print(f"Title: {result.book.title}")
     print(f"Author: {result.book.author}")
     print(
@@ -93,10 +99,20 @@ def run_cli(
         f"{result.classification.reading_difficulty.value} / 5"
     )
     print(f"Genre: {result.classification.genre}")
- 
+
     if result.review is not None:
-        print('---------------------------------------------')
-        print("Review Details:\n")
-        print(f"Review decision: {result.review.decision.value}")
-        print(f"Review confidence: {result.review.confidence:.2f}")
-        print(f"Review reason: {result.review.reason}")
+        print("---------------------------------------------")
+        print("Review Details:")
+        print()
+        print(
+            f"Review decision: "
+            f"{result.review.decision.value}"
+        )
+        print(
+            f"Review confidence: "
+            f"{result.review.confidence:.2f}"
+        )
+        print(
+            f"Review reason: "
+            f"{result.review.reason}"
+        )
